@@ -1,0 +1,23 @@
+{
+  "rules": {
+    "game": {
+      "players": {
+        ".read": true,
+        ".write": true,
+        "$id": {
+          ".validate": "newData.hasChildren(['x','y'])",
+          "face":   { ".validate": "newData.isString() && newData.val().length < 200000" },
+          "sprite": { ".validate": "newData.isString() && newData.val().length < 400000" },
+          "name":   { ".validate": "newData.isString() && newData.val().length < 40" }
+        }
+      },
+      "shots": {
+        ".read": true,
+        ".write": true,
+        "$id": {
+          ".validate": "newData.hasChildren(['x','y','a'])"
+        }
+      }
+    }
+  }
+}
