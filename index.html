@@ -32,20 +32,13 @@
   .studio-head h1{margin:0; font-size:22px; color:var(--ink);}
   .studio-head span{font-size:13px; color:#5a768a;}
   #playerName{padding:10px 14px; border-radius:10px; border:2px solid #dbe9f0; font-family:inherit; font-size:15px; width:170px;}
-  .draw-wrap{flex:1; position:relative; border-radius:18px; overflow:hidden; background:#fff; box-shadow:inset 0 0 0 3px #dbe9f0; display:flex; align-items:center; justify-content:center;}
-  #draw{touch-action:none; background:#fff; border-radius:12px; cursor:crosshair; max-width:100%; max-height:100%;}
-  .controls{display:flex; flex-wrap:wrap; gap:10px; align-items:center; justify-content:center;}
-  .swatches{display:flex; gap:8px; flex-wrap:wrap;}
-  .swatch{width:30px; height:30px; border-radius:50%; cursor:pointer; border:3px solid #fff; box-shadow:0 0 0 1px #cbd9e2; transition:transform .1s;}
-  .swatch.sel{transform:scale(1.25); box-shadow:0 0 0 2px var(--ink);}
-  .sizes{display:flex; gap:8px; align-items:center;}
-  .sizebtn{width:38px; height:38px; border-radius:10px; border:2px solid #dbe9f0; background:#fff; cursor:pointer; display:flex; align-items:center; justify-content:center;}
-  .sizebtn.sel{border-color:var(--accent);}
-  .sizebtn i{background:var(--ink); border-radius:50%; display:block;}
-  .mini{padding:10px 16px; font-size:14px; background:#e4eef4; color:var(--ink);}
-  .mini.eraser.sel{background:var(--accent); color:#fff;}
-  .sep{width:1px; height:34px; background:#cddbe4;}
   .photo{background:#0aa3c2; color:#fff;}
+  .studio-body{flex:1; display:flex; align-items:center; justify-content:center;}
+  .create-card{background:#fff; border:2px solid #e4eef4; border-radius:18px; padding:26px; max-width:420px; width:100%; text-align:center; display:flex; flex-direction:column; gap:14px; align-items:center;}
+  .create-card .robot-emoji{font-size:56px; line-height:1;}
+  .create-card .tip{font-size:14px; color:#5a768a; margin:0; line-height:1.45;}
+  .create-card .row{display:flex; gap:10px; flex-wrap:wrap; justify-content:center;}
+  .create-card #playerName{width:200px;}
 
   .overlay{position:absolute; inset:0; z-index:60; background:rgba(6,4,20,.85); display:none; align-items:center; justify-content:center; padding:16px; backdrop-filter:blur(4px);}
   .overlay.open{display:flex;}
@@ -85,20 +78,19 @@
 
   <div id="studio">
     <div class="studio-head">
-      <div><h1>Taller de robots</h1><span>Dibuja tu robot o pon tu rostro en la pantalla; luego entra a la galaxia</span></div>
-      <input id="playerName" placeholder="Tu nombre" maxlength="14">
+      <div><h1>Crea tu robot</h1><span>Tu rostro irá en la pantalla del robot</span></div>
       <button class="btn ghost" id="closeStudio" style="color:var(--ink);background:#e4eef4;">✕ Volver</button>
     </div>
-    <div class="draw-wrap"><canvas id="draw"></canvas></div>
-    <div class="controls">
-      <div class="swatches" id="swatches"></div>
-      <div class="sizes" id="sizes"></div>
-      <button class="btn mini eraser" id="eraser">🧽 Borrador</button>
-      <button class="btn mini" id="clearDraw">🗑️ Limpiar</button>
-      <span class="sep"></span>
-      <button class="btn photo" id="camBtn">📷 Cámara</button>
-      <button class="btn photo" id="uploadBtn">🖼️ Subir foto</button>
-      <button class="btn" id="release">🚀 Jugar con dibujo</button>
+    <div class="studio-body">
+      <div class="create-card">
+        <div class="robot-emoji">🤖</div>
+        <p class="tip">Toma una foto o sube una imagen. Detectamos tu rostro y lo ponemos en la pantalla de un robot que luego puedes personalizar.</p>
+        <input id="playerName" placeholder="Tu nombre" maxlength="14">
+        <div class="row">
+          <button class="btn photo" id="camBtn">📷 Cámara</button>
+          <button class="btn photo" id="uploadBtn">🖼️ Subir foto</button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -162,36 +154,11 @@
 (function(){
   "use strict";
 
-  /* ============ DIBUJO ============ */
-  const drawCanvas=document.getElementById('draw'), dctx=drawCanvas.getContext('2d');
-  const DW=640, DH=460; drawCanvas.width=DW; drawCanvas.height=DH;
-  let color='#5c6cff', brush=14, erasing=false, drawing=false, lastX=0, lastY=0;
-  const palette=['#5c6cff','#ffb703','#ff5c5c','#3bd16f','#0aa3c2','#b45cff','#ff7ac0','#c0c8d4','#2b2b2b','#ffffff'];
-  const swatchWrap=document.getElementById('swatches');
-  palette.forEach((c,i)=>{ const s=document.createElement('div'); s.className='swatch'+(i===0?' sel':''); s.style.background=c;
-    s.onclick=()=>{ color=c; erasing=false; document.querySelectorAll('.swatch').forEach(e=>e.classList.remove('sel')); s.classList.add('sel'); document.getElementById('eraser').classList.remove('sel'); }; swatchWrap.appendChild(s); });
-  const sizeWrap=document.getElementById('sizes');
-  [8,14,24,38].forEach((sz,i)=>{ const b=document.createElement('button'); b.className='sizebtn'+(i===1?' sel':''); const dot=document.createElement('i'); const d=Math.min(sz,24); dot.style.width=d+'px'; dot.style.height=d+'px'; b.appendChild(dot);
-    b.onclick=()=>{ brush=sz; document.querySelectorAll('.sizebtn').forEach(e=>e.classList.remove('sel')); b.classList.add('sel'); }; sizeWrap.appendChild(b); });
-  document.getElementById('eraser').onclick=function(){ erasing=true; this.classList.add('sel'); document.querySelectorAll('.swatch').forEach(e=>e.classList.remove('sel')); };
-  document.getElementById('clearDraw').onclick=()=>dctx.clearRect(0,0,DW,DH);
-  function dpos(e){ const r=drawCanvas.getBoundingClientRect(); const t=e.touches?e.touches[0]:e; return {x:(t.clientX-r.left)*(DW/r.width), y:(t.clientY-r.top)*(DH/r.height)}; }
-  function dstart(e){ e.preventDefault(); drawing=true; const p=dpos(e); lastX=p.x; lastY=p.y; dline(p.x,p.y,p.x,p.y); }
-  function dmove(e){ if(!drawing)return; e.preventDefault(); const p=dpos(e); dline(lastX,lastY,p.x,p.y); lastX=p.x; lastY=p.y; }
-  function dend(){ drawing=false; }
-  function dline(x1,y1,x2,y2){ dctx.globalCompositeOperation=erasing?'destination-out':'source-over'; dctx.strokeStyle=color; dctx.lineWidth=brush; dctx.lineCap='round'; dctx.lineJoin='round'; dctx.beginPath(); dctx.moveTo(x1,y1); dctx.lineTo(x2,y2); dctx.stroke(); }
-  drawCanvas.addEventListener('mousedown',dstart); drawCanvas.addEventListener('mousemove',dmove); window.addEventListener('mouseup',dend);
-  drawCanvas.addEventListener('touchstart',dstart,{passive:false}); drawCanvas.addEventListener('touchmove',dmove,{passive:false}); drawCanvas.addEventListener('touchend',dend);
-
+  /* ============ TALLER ============ */
   const studio=document.getElementById('studio'), nameInput=document.getElementById('playerName');
   nameInput.value='Robot'+Math.floor(Math.random()*90+10);
   document.getElementById('openStudio').onclick=()=>studio.classList.add('open');
   document.getElementById('closeStudio').onclick=()=>studio.classList.remove('open');
-
-  function cropDrawing(){ const img=dctx.getImageData(0,0,DW,DH).data; let minX=DW,minY=DH,maxX=0,maxY=0,found=false;
-    for(let y=0;y<DH;y++)for(let x=0;x<DW;x++){ if(img[(y*DW+x)*4+3]>20){ found=true; if(x<minX)minX=x; if(x>maxX)maxX=x; if(y<minY)minY=y; if(y>maxY)maxY=y; } }
-    if(!found) return null; const pad=8; minX=Math.max(0,minX-pad); minY=Math.max(0,minY-pad); maxX=Math.min(DW,maxX+pad); maxY=Math.min(DH,maxY+pad);
-    const w=maxX-minX,h=maxY-minY; const c=document.createElement('canvas'); c.width=w; c.height=h; c.getContext('2d').drawImage(drawCanvas,minX,minY,w,h,0,0,w,h); return c; }
 
   /* ============ ROSTRO ============ */
   const R=48, NAVY='#12203f';
@@ -285,7 +252,6 @@
   document.getElementById('reshuffle').onclick=newSpec;
   document.getElementById('previewCancel').onclick=()=>{ closePreview(); pendingFace=null; };
   document.getElementById('confirmCreature').onclick=()=>{ if(pendingFace){ joinGame({t:'m', kind:pendingKind, col:[pendingCol[0],pendingCol[1]], face:pendingFace.toDataURL('image/png')}); } closePreview(); pendingFace=null; studio.classList.remove('open'); };
-  document.getElementById('release').onclick=()=>{ const sprite=cropDrawing(); if(!sprite){ document.getElementById('hint').textContent='Primero dibuja algo 🤖'; return; } joinGame({t:'s', sprite:sprite.toDataURL('image/png')}); dctx.clearRect(0,0,DW,DH); studio.classList.remove('open'); };
 
   /* ============ MUNDO / JUEGO ============ */
   const tank=document.getElementById('tank'), tctx=tank.getContext('2d');
